@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Products — Indian Art Collective</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .products-layout { display:grid; grid-template-columns:260px 1fr; gap:2rem; padding:2rem 0; }
+  .product-detail { max-width:860px; margin:2rem auto; }
+  .product-detail-img { border-radius:var(--radius-lg); overflow:hidden; height:420px; background:var(--cream); }
+  .product-detail-img img { width:100%;height:100%;object-fit:cover; }
+  @media(max-width:900px){ .products-layout{grid-template-columns:1fr}; .filter-panel{position:static} }
+</style>
+</head>
+<body>
+<nav class="navbar" id="main-navbar"></nav>
+<div class="page-wrapper">
+
+  <!-- PRODUCT DETAIL VIEW -->
+  <div id="product-detail-view" style="display:none">
+    <div class="container product-detail">
+      <button class="btn btn-ghost mb-3" onclick="backToList()">← Back to Products</button>
+      <div class="grid-2" style="gap:3rem;align-items:start">
+        <div>
+          <div class="product-detail-img">
+            <img id="detail-img" src="" onerror="this.src='https://placehold.co/600x400/FAF3E8/E8650A?text=Art'">
+          </div>
+        </div>
+        <div>
+          <div id="detail-craft-tag" class="craft-tag" style="margin-bottom:.5rem"></div>
+          <h2 id="detail-name" style="margin-bottom:.5rem"></h2>
+          <div id="detail-artisan" class="text-muted" style="margin-bottom:1rem"></div>
+          <div id="detail-price" style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;color:var(--saffron);margin-bottom:1rem"></div>
+          <div id="detail-stock" class="mb-3"></div>
+          <p id="detail-desc" style="margin-bottom:1.5rem;line-height:1.8"></p>
+          <div class="card-body" style="background:var(--cream);border-radius:var(--radius);margin-bottom:1.5rem">
+            <div class="grid-2" style="gap:.75rem">
+              <div><div style="font-size:.75rem;font-weight:600;color:var(--ink-60);text-transform:uppercase">Craft</div><div id="detail-craft" style="font-weight:500;margin-top:.2rem"></div></div>
+              <div><div style="font-size:.75rem;font-weight:600;color:var(--ink-60);text-transform:uppercase">Region</div><div id="detail-region" style="font-weight:500;margin-top:.2rem"></div></div>
+              <div><div style="font-size:.75rem;font-weight:600;color:var(--ink-60);text-transform:uppercase">Artisan</div><div id="detail-artisan2" style="font-weight:500;margin-top:.2rem"></div></div>
+              <div><div style="font-size:.75px;font-weight:600;color:var(--ink-60);text-transform:uppercase">Skill Level</div><div id="detail-skill" style="margin-top:.2rem"></div></div>
+            </div>
+          </div>
+          <div class="flex gap-2" style="align-items:center">
+            <input type="number" id="buy-qty" value="1" min="1" class="form-control" style="width:80px">
+            <button class="btn btn-primary btn-lg" id="buy-btn" onclick="placeOrder()">🛒 Place Order</button>
+          </div>
+          <div id="order-result" style="margin-top:1rem"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCT LIST VIEW -->
+  <div id="product-list-view">
+    <div class="container">
+      <div style="padding:2.5rem 0 1rem">
+        <div class="section-tag">Explore</div>
+        <h2>All Products</h2>
+      </div>
+      <!-- Search bar -->
+      <div class="search-bar mb-3" style="max-width:540px">
+        <span>🔍</span>
+        <input type="text" id="search-input" placeholder="Search by product, artisan or craft name..." oninput="debouncedSearch()">
+        <button class="btn btn-primary btn-sm" onclick="doSearch()">Search</button>
+      </div>
+      <div class="products-layout">
+        <!-- FILTER PANEL -->
+        <div class="filter-panel">
+          <h4>🎛️ Filters</h4>
+          <div class="filter-group">
+            <label>Price Range</label>
+            <input type="range" id="max-price" min="100" max="20000" value="20000" oninput="document.getElementById('price-display').textContent='Up to ₹'+Number(this.value).toLocaleString('en-IN')">
+            <div class="range-display"><span>₹100</span><span id="price-display">Up to ₹20,000</span></div>
+          </div>
+          <div class="filter-group">
+            <label>Category</label>
+            <div class="filter-chips" id="category-chips"></div>
+          </div>
+          <div class="filter-group">
+            <label>Skill Level</label>
+            <div class="filter-chips">
+              <button class="chip" data-skill="" onclick="setSkill(this)">All</button>
+              <button class="chip" data-skill="Master" onclick="setSkill(this)">Master</button>
+              <button class="chip" data-skill="Advanced" onclick="setSkill(this)">Advanced</button>
+              <button class="chip" data-skill="Intermediate" onclick="setSkill(this)">Intermediate</button>
+              <button class="chip" data-skill="Beginner" onclick="setSkill(this)">Beginner</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label>Sort By</label>
+            <select class="form-control" id="sort-select" onchange="doSearch()">
+              <option value="latest">Latest</option>
+              <option value="price_asc">Price: Low → High</option>
+              <option value="price_desc">Price: High → Low</option>
+            </select>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;margin-top:.5rem" onclick="clearFilters()">Clear Filters</button>
+        </div>
+
+        <!-- PRODUCTS GRID -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div id="results-count" class="text-muted" style="font-size:.88rem"></div>
+          </div>
+          <div class="products-grid" id="products-grid">
+            <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div><p>Loading products...</p></div>
+          </div>
+          <div id="pagination" class="pagination"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER MODAL (quick) -->
+<div class="modal-overlay" id="modal-order">
+  <div class="modal">
+    <div class="modal-header"><h3>Place Order</h3><button class="modal-close" onclick="closeModal('modal-order')">✕</button></div>
+    <div class="modal-body" id="order-modal-content"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-order')">Cancel</button><button class="btn btn-primary" onclick="confirmOrder()">Confirm Order</button></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+let currentPage = 1;
+let selectedCategory = '';
+let selectedSkill = '';
+let currentProductId = null;
+
+renderNavbar('products');
+
+const debouncedSearch = debounce(doSearch, 400);
+
+// Check for product ID in URL
+const params = new URLSearchParams(window.location.search);
+if (params.get('id')) {
+  showProductDetail(params.get('id'));
+} else {
+  loadProducts();
+  loadCategoryChips();
+}
+
+if (params.get('category')) {
+  selectedCategory = params.get('category');
+}
+
+async function loadCategoryChips() {
+  try {
+    const crafts = await api.crafts();
+    const cats = [...new Set(crafts.map(c => c.Category).filter(Boolean))];
+    document.getElementById('category-chips').innerHTML =
+      `<button class="chip active" data-cat="" onclick="setCategory(this)">All</button>` +
+      cats.map(c => `<button class="chip" data-cat="${c}" onclick="setCategory(this)">${c}</button>`).join('');
+  } catch(e) {}
+}
+
+function setCategory(btn) {
+  document.querySelectorAll('#category-chips .chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  selectedCategory = btn.dataset.cat;
+  currentPage = 1;
+  doSearch();
+}
+
+function setSkill(btn) {
+  document.querySelectorAll('[data-skill]').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  selectedSkill = btn.dataset.skill;
+  currentPage = 1;
+  doSearch();
+}
+
+function clearFilters() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('max-price').value = 20000;
+  document.getElementById('price-display').textContent = 'Up to ₹20,000';
+  document.getElementById('sort-select').value = 'latest';
+  selectedCategory = '';
+  selectedSkill = '';
+  document.querySelectorAll('#category-chips .chip').forEach((c, i) => c.classList.toggle('active', i === 0));
+  document.querySelectorAll('[data-skill]').forEach((c, i) => c.classList.toggle('active', i === 0));
+  currentPage = 1;
+  doSearch();
+}
+
+async function loadProducts() { await doSearch(); }
+
+async function doSearch() {
+  const search = document.getElementById('search-input')?.value?.trim() || '';
+  const maxPrice = document.getElementById('max-price')?.value || 20000;
+  const sort = document.getElementById('sort-select')?.value || 'latest';
+
+  const params = { page: currentPage, per_page: 12, sort, max_price: maxPrice };
+  if (search) params.search = search;
+  if (selectedCategory) params.category = selectedCategory;
+  if (selectedSkill) params.skill_level = selectedSkill;
+
+  document.getElementById('products-grid').innerHTML = '<div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div></div>';
+  try {
+    const res = await api.products(params);
+    document.getElementById('results-count').textContent = `${res.total} product${res.total !== 1 ? 's' : ''} found`;
+    document.getElementById('products-grid').innerHTML = res.items.map(p => productCardHTML(p)).join('') ||
+      '<p class="text-muted" style="grid-column:1/-1;text-align:center;padding:3rem">No products match your filters.</p>';
+    renderPagination(res.page, res.pages);
+  } catch(e) {
+    document.getElementById('products-grid').innerHTML = '<p class="text-muted" style="grid-column:1/-1;text-align:center;padding:3rem">Failed to load products. Make sure the backend is running.</p>';
+  }
+}
+
+function renderPagination(page, total) {
+  if (total <= 1) { document.getElementById('pagination').innerHTML = ''; return; }
+  let html = `<button class="page-btn" onclick="goPage(${page-1})" ${page===1?'disabled':''}>‹</button>`;
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || Math.abs(i - page) <= 2) {
+      html += `<button class="page-btn ${i===page?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    } else if (Math.abs(i - page) === 3) {
+      html += `<span style="padding:.5rem">…</span>`;
+    }
+  }
+  html += `<button class="page-btn" onclick="goPage(${page+1})" ${page===total?'disabled':''}>›</button>`;
+  document.getElementById('pagination').innerHTML = html;
+}
+
+function goPage(p) { currentPage = p; doSearch(); window.scrollTo(0, 0); }
+
+async function showProductDetail(id) {
+  document.getElementById('product-list-view').style.display = 'none';
+  document.getElementById('product-detail-view').style.display = 'block';
+  try {
+    const p = await api.product(id);
+    currentProductId = p.Product_ID;
+    document.getElementById('detail-img').src = p.Image_URL || '';
+    document.getElementById('detail-craft-tag').textContent = p.Category || 'Handicraft';
+    document.getElementById('detail-name').textContent = p.Product_Name;
+    document.getElementById('detail-artisan').textContent = `by ${p.Artisan_Name || 'Unknown Artisan'} · ${p.Artisan_State || ''}`;
+    document.getElementById('detail-artisan2').textContent = p.Artisan_Name || '—';
+    document.getElementById('detail-price').textContent = formatCurrency(p.Price);
+    document.getElementById('detail-stock').innerHTML = p.Stock_Quantity > 0
+      ? `<span class="badge badge-jade">✓ In Stock (${p.Stock_Quantity})</span>`
+      : `<span class="badge badge-ruby">Out of Stock</span>`;
+    document.getElementById('detail-desc').textContent = p.Description || 'A beautifully handcrafted Indian art piece.';
+    document.getElementById('detail-craft').textContent = p.Craft_Name || '—';
+    document.getElementById('detail-region').textContent = p.Region || p.Artisan_State || '—';
+    document.getElementById('detail-skill').innerHTML = p.Skill_Level ? skillBadge(p.Skill_Level) : '—';
+    document.getElementById('buy-qty').max = p.Stock_Quantity;
+    document.getElementById('buy-btn').disabled = p.Stock_Quantity === 0;
+
+    if (params.get('buy') === '1') {
+      setTimeout(() => document.getElementById('buy-btn').scrollIntoView({ behavior: 'smooth' }), 300);
+    }
+  } catch(e) { showToast('Product not found', 'error'); backToList(); }
+}
+
+function backToList() {
+  window.history.pushState({}, '', 'products.html');
+  document.getElementById('product-list-view').style.display = 'block';
+  document.getElementById('product-detail-view').style.display = 'none';
+}
+
+function viewProduct(id) { showProductDetail(id); }
+
+async function placeOrder() {
+  const buyer = api.user();
+  if (!buyer || buyer.role !== 'buyer') {
+    showToast('Please login as a buyer to place orders', 'info');
+    setTimeout(() => window.location.href = 'login_buyer.html', 1200);
+    return;
+  }
+  const qty = parseInt(document.getElementById('buy-qty').value) || 1;
+  try {
+    const result = await api.placeOrder({ product_id: currentProductId, quantity: qty });
+    document.getElementById('order-result').innerHTML = `<div class="alert alert-success">✓ Order placed successfully! Order #${result.id}</div>`;
+    showToast('Order placed!', 'success');
+  } catch(e) {
+    document.getElementById('order-result').innerHTML = `<div class="alert alert-error">❌ ${e.message}</div>`;
+  }
+}
+
+function addToCart(id, name, price) { showProductDetail(id); }
+
+loadProducts();
+loadCategoryChips();
+</script>
+</body>
+</html>

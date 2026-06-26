@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Orders — Indian Art Collective</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar" id="main-navbar"></nav>
+<div class="page-wrapper">
+  <div class="container section">
+    <div class="section-tag">Orders</div>
+    <h2 id="page-title">My Orders</h2>
+    <div class="card mt-4">
+      <div class="table-wrapper">
+        <table><thead><tr><th>Order #</th><th>Product</th><th>Qty</th><th>Amount</th><th>Date</th></tr></thead>
+        <tbody id="orders-table"><tr><td colspan="5" style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+renderNavbar();
+const user = api.user();
+if (!user) { window.location.href = 'login_buyer.html'; }
+
+async function loadOrders() {
+  try {
+    let orders = [];
+    if (user.role === 'buyer') {
+      orders = await api.buyerOrders(user.id);
+    } else if (user.role === 'artisan') {
+      orders = await api.artisanOrders(user.id);
+      document.getElementById('page-title').textContent = 'Orders Received';
+    }
+    document.getElementById('orders-table').innerHTML = orders.map(o => `
+      <tr>
+        <td>#${o.Order_ID}</td>
+        <td>${o.Product_Name}</td>
+        <td>${o.Quantity}</td>
+        <td><strong>${formatCurrency(o.Total_Amount)}</strong></td>
+        <td>${formatDate(o.Order_Date)}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--ink-60);padding:2rem">No orders yet</td></tr>';
+  } catch(e) { showToast('Error loading orders', 'error'); }
+}
+loadOrders();
+</script>
+</body>
+</html>

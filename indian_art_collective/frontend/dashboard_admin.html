@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Admin Dashboard — Indian Art Collective</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .chart-box { background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; }
+  .chart-box h4 { margin-bottom:1.25rem; }
+  .modal-lg .modal { max-width:700px; }
+  .delete-btn { color:var(--ruby); background:none; border:none; cursor:pointer; font-size:.85rem; padding:.3rem .6rem; border-radius:6px; transition:var(--transition); }
+  .delete-btn:hover { background:rgba(192,57,43,.1); }
+  .edit-btn { color:var(--jade); background:none; border:none; cursor:pointer; font-size:.85rem; padding:.3rem .6rem; border-radius:6px; transition:var(--transition); }
+  .edit-btn:hover { background:rgba(45,106,79,.1); }
+</style>
+</head>
+<body>
+<nav class="navbar" id="main-navbar"></nav>
+<div class="page-wrapper">
+  <div class="dashboard-layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sb-avatar">A</div>
+        <div><div class="sidebar-name" id="sb-name">Admin</div><div class="sidebar-role">Administrator</div></div>
+      </div>
+      <div class="sidebar-section">Overview</div>
+      <ul class="sidebar-nav">
+        <li><a href="#" data-key="dashboard" onclick="showSection('dashboard')" class="active"><span class="icon">📊</span> Dashboard</a></li>
+        <li><a href="#" data-key="artisans" onclick="showSection('artisans')"><span class="icon">🎨</span> Artisans</a></li>
+        <li><a href="#" data-key="buyers" onclick="showSection('buyers')"><span class="icon">🛍️</span> Buyers</a></li>
+        <li><a href="#" data-key="products" onclick="showSection('products')"><span class="icon">🏺</span> Products</a></li>
+      </ul>
+      <div class="sidebar-section">Management</div>
+      <ul class="sidebar-nav">
+        <li><a href="#" data-key="orders" onclick="showSection('orders')"><span class="icon">📦</span> Orders</a></li>
+        <li><a href="#" data-key="exhibitions" onclick="showSection('exhibitions')"><span class="icon">🎪</span> Exhibitions</a></li>
+        <li><a href="#" data-key="schemes" onclick="showSection('schemes')"><span class="icon">📜</span> Gov. Schemes</a></li>
+        <li><a href="#" data-key="crafts" onclick="showSection('crafts')"><span class="icon">✏️</span> Crafts</a></li>
+      </ul>
+      <div class="sidebar-section">Export</div>
+      <ul class="sidebar-nav">
+        <li><a href="http://localhost:5000/api/admin/export/artisans" target="_blank"><span class="icon">⬇️</span> Export Artisans</a></li>
+        <li><a href="http://localhost:5000/api/admin/export/orders" target="_blank"><span class="icon">⬇️</span> Export Orders</a></li>
+      </ul>
+      <div style="padding:1rem;margin-top:auto">
+        <button class="btn btn-danger btn-sm" style="width:100%;justify-content:center" onclick="logout()">Logout</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="dashboard-main">
+
+      <!-- DASHBOARD OVERVIEW -->
+      <div id="sec-dashboard">
+        <div class="dashboard-header">
+          <h2>Platform Overview</h2>
+          <p>Real-time analytics and statistics</p>
+        </div>
+        <div class="grid-4 mb-4" id="stat-cards">
+          <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+        <div class="grid-2 mb-4">
+          <div class="chart-box">
+            <h4>Monthly Revenue (₹)</h4>
+            <canvas id="revenue-chart" width="500" height="220"></canvas>
+          </div>
+          <div class="chart-box">
+            <h4>Artisans by State</h4>
+            <canvas id="state-chart" width="300" height="220"></canvas>
+            <div id="state-legend" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem;font-size:.78rem"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header flex items-center justify-between">
+            <h4>Top Products by Sales</h4>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>#</th><th>Product</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+            <tbody id="top-products-table"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARTISANS -->
+      <div id="sec-artisans" style="display:none">
+        <div class="dashboard-header flex items-center justify-between">
+          <div><h2>Artisans</h2><p>Manage all registered artisans</p></div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-artisan')">+ Add Artisan</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><input type="text" class="form-control" placeholder="Search artisans..." id="artisan-search" oninput="filterArtisanTable(this.value)" style="max-width:320px"></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>State</th><th>Skill</th><th>Experience</th><th>Actions</th></tr></thead>
+            <tbody id="artisans-table"><tr><td colspan="7" style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- BUYERS -->
+      <div id="sec-buyers" style="display:none">
+        <div class="dashboard-header"><h2>Buyers</h2><p>All registered buyers</p></div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Address</th><th>Actions</th></tr></thead>
+            <tbody id="buyers-table"><tr><td colspan="6" style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRODUCTS -->
+      <div id="sec-products" style="display:none">
+        <div class="dashboard-header"><h2>Products</h2><p>All listed products</p></div>
+        <div class="products-grid" id="admin-products-grid">
+          <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- ORDERS -->
+      <div id="sec-orders" style="display:none">
+        <div class="dashboard-header"><h2>Orders</h2><p>All platform orders</p></div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table><thead><tr><th>Order ID</th><th>Date</th><th>Buyer</th><th>Product</th><th>Artisan</th><th>Qty</th><th>Amount</th><th>Actions</th></tr></thead>
+            <tbody id="orders-table"><tr><td colspan="8" style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXHIBITIONS -->
+      <div id="sec-exhibitions" style="display:none">
+        <div class="dashboard-header flex items-center justify-between">
+          <div><h2>Exhibitions</h2><p>Manage craft exhibitions</p></div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-exhibition')">+ Add Exhibition</button>
+        </div>
+        <div class="grid-3" id="admin-exhibitions-grid">
+          <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- SCHEMES -->
+      <div id="sec-schemes" style="display:none">
+        <div class="dashboard-header flex items-center justify-between">
+          <div><h2>Government Schemes</h2><p>Manage artisan welfare schemes</p></div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-scheme')">+ Add Scheme</button>
+        </div>
+        <div id="schemes-list" class="grid-2">
+          <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- CRAFTS -->
+      <div id="sec-crafts" style="display:none">
+        <div class="dashboard-header flex items-center justify-between">
+          <div><h2>Craft Types</h2><p>Manage craft categories</p></div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-craft')">+ Add Craft</button>
+        </div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table><thead><tr><th>ID</th><th>Craft Name</th><th>Category</th><th>Region</th><th>Description</th><th>Actions</th></tr></thead>
+            <tbody id="crafts-table"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ADD EXHIBITION MODAL -->
+<div class="modal-overlay" id="modal-add-exhibition">
+  <div class="modal">
+    <div class="modal-header"><h3 id="ex-modal-title">Add Exhibition</h3><button class="modal-close" onclick="closeModal('modal-add-exhibition')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="ex-id">
+      <div class="form-group"><label class="form-label">Exhibition Name</label><input type="text" id="ex-name" class="form-control"></div>
+      <div class="form-group"><label class="form-label">Location</label><input type="text" id="ex-location" class="form-control"></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Start Date</label><input type="date" id="ex-start" class="form-control"></div>
+        <div class="form-group"><label class="form-label">End Date</label><input type="date" id="ex-end" class="form-control"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-exhibition')">Cancel</button><button class="btn btn-primary" onclick="saveExhibition()">Save</button></div>
+  </div>
+</div>
+
+<!-- ADD SCHEME MODAL -->
+<div class="modal-overlay" id="modal-add-scheme">
+  <div class="modal">
+    <div class="modal-header"><h3>Add Government Scheme</h3><button class="modal-close" onclick="closeModal('modal-add-scheme')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="sc-id">
+      <div class="form-group"><label class="form-label">Scheme Name</label><input type="text" id="sc-name" class="form-control"></div>
+      <div class="form-group"><label class="form-label">Launch Year</label><input type="number" id="sc-year" class="form-control" placeholder="2023"></div>
+      <div class="form-group"><label class="form-label">Benefits</label><textarea id="sc-benefits" class="form-control"></textarea></div>
+      <div class="form-group"><label class="form-label">Eligibility</label><textarea id="sc-eligibility" class="form-control"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-scheme')">Cancel</button><button class="btn btn-primary" onclick="saveScheme()">Save</button></div>
+  </div>
+</div>
+
+<!-- ADD CRAFT MODAL -->
+<div class="modal-overlay" id="modal-add-craft">
+  <div class="modal">
+    <div class="modal-header"><h3>Add Craft</h3><button class="modal-close" onclick="closeModal('modal-add-craft')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="craft-id">
+      <div class="form-group"><label class="form-label">Craft Name</label><input type="text" id="craft-name" class="form-control"></div>
+      <div class="form-group"><label class="form-label">Category</label><input type="text" id="craft-category" class="form-control"></div>
+      <div class="form-group"><label class="form-label">Region</label><input type="text" id="craft-region" class="form-control"></div>
+      <div class="form-group"><label class="form-label">Description</label><textarea id="craft-desc" class="form-control"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-craft')">Cancel</button><button class="btn btn-primary" onclick="saveCraft()">Save</button></div>
+  </div>
+</div>
+
+<!-- ASSIGN ARTISAN TO EXHIBITION MODAL -->
+<div class="modal-overlay" id="modal-assign-exhibition">
+  <div class="modal">
+    <div class="modal-header"><h3>Assign Artisan to Exhibition</h3><button class="modal-close" onclick="closeModal('modal-assign-exhibition')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="assign-ex-id">
+      <div class="form-group"><label class="form-label">Select Artisan</label>
+        <select id="assign-artisan-select" class="form-control"><option>Loading...</option></select>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-assign-exhibition')">Cancel</button><button class="btn btn-primary" onclick="doAssignArtisan()">Assign</button></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+const user = requireAuth('admin');
+if (user) {
+  document.getElementById('sb-name').textContent = user.name;
+  document.getElementById('sb-avatar').textContent = user.name[0].toUpperCase();
+  renderNavbar();
+}
+
+const sections = ['dashboard','artisans','buyers','products','orders','exhibitions','schemes','crafts'];
+let allArtisans = [];
+
+function showSection(key) {
+  sections.forEach(s => document.getElementById('sec-' + s).style.display = 'none');
+  document.getElementById('sec-' + key).style.display = 'block';
+  document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.toggle('active', a.dataset.key === key));
+  loadSection(key);
+}
+
+async function loadSection(key) {
+  if (key === 'dashboard') await loadDashboard();
+  else if (key === 'artisans') await loadArtisans();
+  else if (key === 'buyers') await loadBuyers();
+  else if (key === 'products') await loadProducts();
+  else if (key === 'orders') await loadOrders();
+  else if (key === 'exhibitions') await loadExhibitions();
+  else if (key === 'schemes') await loadSchemes();
+  else if (key === 'crafts') await loadCrafts();
+}
+
+async function loadDashboard() {
+  try {
+    const d = await api.adminDashboard();
+    document.getElementById('stat-cards').innerHTML = `
+      <div class="stat-card"><div class="stat-icon orange">🎨</div><div><div class="stat-value">${d.artisans}</div><div class="stat-label">Total Artisans</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">🛍️</div><div><div class="stat-value">${d.buyers}</div><div class="stat-label">Total Buyers</div></div></div>
+      <div class="stat-card"><div class="stat-icon gold">🏺</div><div><div class="stat-value">${d.products}</div><div class="stat-label">Products Listed</div></div></div>
+      <div class="stat-card"><div class="stat-icon ruby">📦</div><div><div class="stat-value">${d.orders}</div><div class="stat-label">Total Orders</div></div></div>
+      <div class="stat-card"><div class="stat-icon blue">🎪</div><div><div class="stat-value">${d.active_exhibitions}</div><div class="stat-label">Active Exhibitions</div></div></div>
+      <div class="stat-card"><div class="stat-icon purple">📜</div><div><div class="stat-value">${d.schemes}</div><div class="stat-label">Gov. Schemes</div></div></div>
+      <div class="stat-card" style="grid-column:1/-1;background:linear-gradient(135deg,var(--saffron),var(--earth));border:none">
+        <div class="stat-icon" style="background:rgba(255,255,255,.2);color:#fff">💰</div>
+        <div><div class="stat-value" style="color:#fff">${formatCurrency(d.revenue)}</div><div class="stat-label" style="color:rgba(255,255,255,.8)">Total Revenue</div></div>
+      </div>
+    `;
+    // Revenue chart
+    if (d.monthly_data && d.monthly_data.length) {
+      setTimeout(() => {
+        drawBarChart('revenue-chart', d.monthly_data.map(m => m.month.slice(5)), d.monthly_data.map(m => Math.round(m.revenue)));
+      }, 100);
+    }
+    // State donut
+    if (d.state_distribution && d.state_distribution.length) {
+      const colors = ['#E8650A','#2D6A4F','#C9A84C','#C0392B','#2980b9','#8e44ad','#e67e22'];
+      setTimeout(() => {
+        drawDonutChart('state-chart', d.state_distribution.map(s => s.State), d.state_distribution.map(s => s.count), colors);
+        document.getElementById('state-legend').innerHTML = d.state_distribution.map((s, i) => `
+          <span style="display:flex;align-items:center;gap:.3rem"><span style="width:10px;height:10px;border-radius:50%;background:${colors[i%colors.length]};display:inline-block"></span>${s.State} (${s.count})</span>
+        `).join('');
+      }, 100);
+    }
+    // Top products
+    document.getElementById('top-products-table').innerHTML = (d.top_products || []).map((p, i) => `
+      <tr><td>${i+1}</td><td>${p.Product_Name}</td><td>${p.sold}</td><td>${formatCurrency(p.revenue)}</td></tr>
+    `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--ink-60)">No data yet</td></tr>';
+  } catch(e) { showToast('Failed to load dashboard: ' + e.message, 'error'); }
+}
+
+async function loadArtisans() {
+  try {
+    allArtisans = await api.artisans();
+    renderArtisanTable(allArtisans);
+  } catch(e) { showToast('Error loading artisans', 'error'); }
+}
+
+function renderArtisanTable(data) {
+  document.getElementById('artisans-table').innerHTML = data.map(a => `
+    <tr>
+      <td>${a.Artisan_ID}</td>
+      <td><strong>${a.Name}</strong></td>
+      <td>${a.Email}</td>
+      <td>${a.State || '—'}</td>
+      <td>${skillBadge(a.Skill_Level)}</td>
+      <td>${a.Years_of_Experience} yrs</td>
+      <td class="td-actions">
+        <button class="edit-btn" onclick="editArtisan(${a.Artisan_ID})">Edit</button>
+        <button class="delete-btn" onclick="deleteArtisanConfirm(${a.Artisan_ID},'${a.Name}')">Delete</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="7" style="text-align:center">No artisans found</td></tr>';
+}
+
+function filterArtisanTable(q) {
+  const filtered = allArtisans.filter(a => a.Name.toLowerCase().includes(q.toLowerCase()) || a.Email.toLowerCase().includes(q.toLowerCase()) || (a.State || '').toLowerCase().includes(q.toLowerCase()));
+  renderArtisanTable(filtered);
+}
+
+async function deleteArtisanConfirm(id, name) {
+  confirmAction(`Delete artisan "${name}"? This will also delete their products.`, async () => {
+    try { await api.deleteArtisan(id); showToast('Artisan deleted', 'success'); loadArtisans(); } catch(e) { showToast(e.message, 'error'); }
+  });
+}
+
+async function loadBuyers() {
+  try {
+    const buyers = await api.buyers();
+    document.getElementById('buyers-table').innerHTML = buyers.map(b => `
+      <tr><td>${b.Buyer_ID}</td><td>${b.Name}</td><td>${b.Email}</td><td>${b.Phone || '—'}</td><td>${b.Address || '—'}</td>
+      <td><button class="delete-btn" onclick="deleteBuyer(${b.Buyer_ID},'${b.Name}')">Delete</button></td></tr>
+    `).join('') || '<tr><td colspan="6" style="text-align:center">No buyers found</td></tr>';
+  } catch(e) { showToast('Error loading buyers', 'error'); }
+}
+
+async function deleteBuyer(id, name) {
+  confirmAction(`Delete buyer "${name}"?`, async () => {
+    try { await api.deleteBuyer(id); showToast('Buyer deleted', 'success'); loadBuyers(); } catch(e) { showToast(e.message, 'error'); }
+  });
+}
+
+async function loadProducts() {
+  try {
+    const res = await api.products({ per_page: 100 });
+    document.getElementById('admin-products-grid').innerHTML = res.items.map(p => `
+      <div class="card product-card">
+        <div class="product-img">
+          <img src="${p.Image_URL || ''}" alt="${p.Product_Name}" onerror="this.src='https://placehold.co/400x300/FAF3E8/E8650A?text=Art'">
+        </div>
+        <div class="product-body">
+          <div class="craft-tag">${p.Craft_Name || ''}</div>
+          <div class="product-name">${p.Product_Name}</div>
+          <div class="artisan-name">by ${p.Artisan_Name || '—'}</div>
+          <div class="product-footer">
+            <div class="price">${formatCurrency(p.Price)}</div>
+            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.Product_ID},'${p.Product_Name}')">Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join('') || '<p class="text-muted">No products</p>';
+  } catch(e) { showToast('Error loading products', 'error'); }
+}
+
+async function deleteProduct(id, name) {
+  confirmAction(`Delete product "${name}"?`, async () => {
+    try { await api.deleteProduct(id); showToast('Product deleted', 'success'); loadProducts(); } catch(e) { showToast(e.message, 'error'); }
+  });
+}
+
+async function loadOrders() {
+  try {
+    const orders = await api.orders();
+    document.getElementById('orders-table').innerHTML = orders.map(o => `
+      <tr>
+        <td>#${o.Order_ID}</td>
+        <td>${formatDate(o.Order_Date)}</td>
+        <td>${o.Buyer_Name || '—'}</td>
+        <td>${o.Product_Name || '—'}</td>
+        <td>${o.Artisan_Name || '—'}</td>
+        <td>${o.Quantity}</td>
+        <td><strong>${formatCurrency(o.Total_Amount)}</strong></td>
+        <td><button class="delete-btn" onclick="deleteOrderConfirm(${o.Order_ID})">Delete</button></td>
+      </tr>
+    `).join('') || '<tr><td colspan="8" style="text-align:center">No orders</td></tr>';
+  } catch(e) { showToast('Error loading orders', 'error'); }
+}
+
+async function deleteOrderConfirm(id) {
+  confirmAction(`Delete order #${id}?`, async () => {
+    try { await api.deleteOrder(id); showToast('Order deleted', 'success'); loadOrders(); } catch(e) { showToast(e.message, 'error'); }
+  });
+}
+
+async function loadExhibitions() {
+  try {
+    const exhibitions = await api.exhibitions();
+    document.getElementById('admin-exhibitions-grid').innerHTML = exhibitions.map(e => `
+      <div class="exhibition-card">
+        <div class="exhibition-banner">
+          <span class="ex-icon">🎪</span>
+          <h3>${e.Exhibition_Name}</h3>
+        </div>
+        <div class="exhibition-body">
+          <div class="exhibition-meta">
+            <span>📍 ${e.Location}</span>
+          </div>
+          <div class="exhibition-meta">
+            <span>📅 ${formatDate(e.Start_Date)}</span>
+            <span>→ ${formatDate(e.End_Date)}</span>
+          </div>
+          <div class="td-actions mt-2">
+            <button class="btn btn-secondary btn-sm" onclick="openAssignModal(${e.Exhibition_ID})">Assign Artisan</button>
+            <button class="btn btn-ghost btn-sm" onclick="editExhibition(${e.Exhibition_ID},'${e.Exhibition_Name}','${e.Location}','${e.Start_Date}','${e.End_Date}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteExhibition(${e.Exhibition_ID},'${e.Exhibition_Name}')">Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join('') || '<p class="text-muted">No exhibitions</p>';
+  } catch(e) { showToast('Error loading exhibitions', 'error'); }
+}
+
+function editExhibition(id, name, loc, start, end) {
+  document.getElementById('ex-id').value = id;
+  document.getElementById('ex-name').value = name;
+  document.getElementById('ex-location').value = loc;
+  document.getElementById('ex-start').value = start ? start.slice(0,10) : '';
+  document.getElementById('ex-end').value = end ? end.slice(0,10) : '';
+  document.getElementById('ex-modal-title').textContent = 'Edit Exhibition';
+  openModal('modal-add-exhibition');
+}
+
+async function saveExhibition() {
+  const id = document.getElementById('ex-id').value;
+  const data = { exhibition_name: document.getElementById('ex-name').value, location: document.getElementById('ex-location').value, start_date: document.getElementById('ex-start').value, end_date: document.getElementById('ex-end').value };
+  try {
+    if (id) await api.updateExhibition(id, data); else await api.createExhibition(data);
+    showToast('Exhibition saved', 'success'); closeModal('modal-add-exhibition');
+    document.getElementById('ex-id').value = ''; document.getElementById('ex-modal-title').textContent = 'Add Exhibition';
+    loadExhibitions();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function deleteExhibition(id, name) {
+  confirmAction(`Delete exhibition "${name}"?`, async () => {
+    try { await api.deleteExhibition(id); showToast('Deleted', 'success'); loadExhibitions(); } catch(e) { showToast(e.message, 'error'); }
+  });
+}
+
+async function openAssignModal(exId) {
+  document.getElementById('assign-ex-id').value = exId;
+  if (!allArtisans.length) allArtisans = await api.artisans();
+  document.getElementById('assign-artisan-select').innerHTML = allArtisans.map(a => `<option value="${a.Artisan_ID}">${a.Name} (${a.State || 'N/A'})</option>`).join('');
+  openModal('modal-assign-exhibition');
+}
+
+async function doAssignArtisan() {
+  const exId = document.getElementById('assign-ex-id').value;
+  const artisanId = document.getElementById('assign-artisan-select').value;
+  try { await api.assignArtisanExhibition(exId, artisanId); showToast('Artisan assigned!', 'success'); closeModal('modal-assign-exhibition'); } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function loadSchemes() {
+  try {
+    const schemes = await api.schemes();
+    document.getElementById('schemes-list').innerHTML = schemes.map(s => `
+      <div class="card card-body">
+        <div class="flex items-center justify-between mb-2">
+          <h4>${s.Scheme_Name}</h4>
+          <div class="td-actions">
+            <button class="edit-btn" onclick="editScheme(${JSON.stringify(s).replace(/"/g,'&quot;')})">Edit</button>
+            <button class="delete-btn" onclick="deleteScheme(${s.Scheme_ID},'${s.Scheme_Name}')">Delete</button>
+          </div>
+        </div>
+        <div class="badge badge-gold mb-2">Launched ${s.Launch_Year}</div>
+        <p style="font-size:.85rem"><strong>Benefits:</strong> ${s.Benefits || '—'}</p>
+        <p style="font-size:.85rem;margin-top:.35rem"><strong>Eligibility:</strong> ${s.Eligibility || '—'}</p>
+      </div>
+    `).join('') || '<p class="text-muted">No schemes</p>';
+  } catch(e) { showToast('Error loading schemes', 'error'); }
+}
+
+function editScheme(s) {
+  document.getElementById('sc-id').value = s.Scheme_ID;
+  document.getElementById('sc-name').value = s.Scheme_Name;
+  document.getElementById('sc-year').value = s.Launch_Year;
+  document.getElementById('sc-benefits').value = s.Benefits || '';
+  document.getElementById('sc-eligibility').value = s.Eligibility || '';
+  openModal('modal-add-scheme');
+}
+
+async function saveScheme() {
+  const id = document.getElementById('sc-id').value;
+  const data = { scheme_name: document.getElementById('sc-name').value, launch_year: document.getElementById('sc-year').value, benefits: document.getElementById('sc-benefits').value, eligibility: document.getElementById('sc-eligibility').value };
+  try {
+    if (id) await api.updateScheme(id, data); else await api.createScheme(data);
+    showToast('Scheme saved', 'success'); closeModal('modal-add-scheme');
+    document.getElementById('sc-id').value = ''; loadSchemes();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function deleteScheme(id, name) {
+  confirmAction(`Delete scheme "${name}"?`, async () => {
+    try { await api.deleteScheme(id); showToast('Deleted', 'success'); loadSchemes(); } catch(e) { showToast(e.message, 'error'); }
+  });
+}
+
+async function loadCrafts() {
+  try {
+    const crafts = await api.crafts();
+    document.getElementById('crafts-table').innerHTML = crafts.map(c => `
+      <tr>
+        <td>${c.Craft_ID}</td>
+        <td><strong>${c.Craft_Name}</strong></td>
+        <td>${c.Category || '—'}</td>
+        <td>${c.Region || '—'}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.Description || '—'}</td>
+        <td class="td-actions">
+          <button class="edit-btn" onclick="editCraft(${c.Craft_ID},'${c.Craft_Name}','${c.Category}','${c.Region}','${(c.Description||'').replace(/'/g,'&#39;')}')">Edit</button>
+          <button class="delete-btn" onclick="deleteCraft(${c.Craft_ID},'${c.Craft_Name}')">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch(e) { showToast('Error loading crafts', 'error'); }
+}
+
+function editCraft(id, name, cat, region, desc) {
+  document.getElementById('craft-id').value = id;
+  document.getElementById('craft-name').value = name;
+  document.getElementById('craft-category').value = cat;
+  document.getElementById('craft-region').value = region;
+  document.getElementById('craft-desc').value = desc;
+  openModal('modal-add-craft');
+}
+
+async function saveCraft() {
+  const id = document.getElementById('craft-id').value;
+  const data = { craft_name: document.getElementById('craft-name').value, category: document.getElementById('craft-category').value, region: document.getElementById('craft-region').value, description: document.getElementById('craft-desc').value };
+  try {
+    if (id) await api.updateCraft(id, data); else await api.createCraft(data);
+    showToast('Craft saved', 'success'); closeModal('modal-add-craft');
+    document.getElementById('craft-id').value = ''; loadCrafts();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function deleteCraft(id, name) {
+  confirmAction(`Delete craft "${name}"?`, async () => {
+    try { await api.deleteCraft(id); showToast('Deleted', 'success'); loadCrafts(); } catch(e) { showToast(e.message, 'error'); }
+  });
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+
+// Load dashboard on init
+loadDashboard();
+</script>
+</body>
+</html>

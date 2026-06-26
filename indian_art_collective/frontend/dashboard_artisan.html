@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Artisan Dashboard — Indian Art Collective</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar" id="main-navbar"></nav>
+<div class="page-wrapper">
+  <div class="dashboard-layout">
+    <aside class="sidebar">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sb-avatar">A</div>
+        <div><div class="sidebar-name" id="sb-name">Artisan</div><div class="sidebar-role">Artisan</div></div>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="#" data-key="overview" onclick="showSection('overview')" class="active"><span class="icon">📊</span> Overview</a></li>
+        <li><a href="#" data-key="products" onclick="showSection('products')"><span class="icon">🏺</span> My Products</a></li>
+        <li><a href="#" data-key="orders" onclick="showSection('orders')"><span class="icon">📦</span> Orders Received</a></li>
+        <li><a href="#" data-key="exhibitions" onclick="showSection('exhibitions')"><span class="icon">🎪</span> My Exhibitions</a></li>
+        <li><a href="#" data-key="schemes" onclick="showSection('schemes')"><span class="icon">📜</span> Gov. Schemes</a></li>
+        <li><a href="#" data-key="profile" onclick="showSection('profile')"><span class="icon">👤</span> My Profile</a></li>
+      </ul>
+      <div style="padding:1rem;margin-top:2rem">
+        <button class="btn btn-danger btn-sm" style="width:100%;justify-content:center" onclick="logout()">Logout</button>
+      </div>
+    </aside>
+
+    <main class="dashboard-main">
+      <!-- OVERVIEW -->
+      <div id="sec-overview">
+        <div class="dashboard-header"><h2 id="welcome-msg">Welcome back!</h2><p>Here's how your craft business is doing</p></div>
+        <div class="grid-4 mb-4" id="artisan-stats">
+          <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h4>Recent Orders</h4></div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Order</th><th>Product</th><th>Buyer</th><th>Qty</th><th>Amount</th><th>Date</th></tr></thead>
+            <tbody id="recent-orders-table"><tr><td colspan="6" style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRODUCTS -->
+      <div id="sec-products" style="display:none">
+        <div class="dashboard-header flex items-center justify-between">
+          <div><h2>My Products</h2><p>Add and manage your craft listings</p></div>
+          <button class="btn btn-primary" onclick="openModal('modal-product')">+ Add Product</button>
+        </div>
+        <div class="products-grid" id="artisan-products-grid">
+          <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- ORDERS -->
+      <div id="sec-orders" style="display:none">
+        <div class="dashboard-header"><h2>Orders Received</h2><p>Orders placed for your products</p></div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table><thead><tr><th>Order</th><th>Product</th><th>Buyer</th><th>Qty</th><th>Amount</th><th>Date</th></tr></thead>
+            <tbody id="all-orders-table"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXHIBITIONS -->
+      <div id="sec-exhibitions" style="display:none">
+        <div class="dashboard-header"><h2>My Exhibitions</h2><p>Exhibitions you are participating in</p></div>
+        <div class="grid-3" id="artisan-exhibitions"></div>
+      </div>
+
+      <!-- SCHEMES -->
+      <div id="sec-schemes" style="display:none">
+        <div class="dashboard-header"><h2>Government Schemes</h2><p>Schemes you are enrolled in</p></div>
+        <div class="grid-2" id="artisan-schemes"></div>
+      </div>
+
+      <!-- PROFILE -->
+      <div id="sec-profile" style="display:none">
+        <div class="dashboard-header"><h2>My Profile</h2><p>Update your information</p></div>
+        <div class="card" style="max-width:600px">
+          <div class="card-body">
+            <div id="profile-alert"></div>
+            <div class="grid-2">
+              <div class="form-group"><label class="form-label">Full Name</label><input type="text" id="p-name" class="form-control"></div>
+              <div class="form-group"><label class="form-label">Email</label><input type="email" id="p-email" class="form-control"></div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group"><label class="form-label">Phone</label><input type="tel" id="p-phone" class="form-control"></div>
+              <div class="form-group"><label class="form-label">Date of Birth</label><input type="date" id="p-dob" class="form-control"></div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group"><label class="form-label">State</label><input type="text" id="p-state" class="form-control"></div>
+              <div class="form-group"><label class="form-label">Skill Level</label>
+                <select id="p-skill" class="form-control"><option>Beginner</option><option>Intermediate</option><option>Advanced</option><option>Master</option></select>
+              </div>
+            </div>
+            <div class="form-group"><label class="form-label">Address</label><textarea id="p-address" class="form-control"></textarea></div>
+            <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ADD/EDIT PRODUCT MODAL -->
+<div class="modal-overlay" id="modal-product">
+  <div class="modal">
+    <div class="modal-header"><h3 id="prod-modal-title">Add Product</h3><button class="modal-close" onclick="closeModal('modal-product')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="prod-id">
+      <div class="form-group"><label class="form-label">Product Name</label><input type="text" id="prod-name" class="form-control"></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Price (₹)</label><input type="number" id="prod-price" class="form-control" min="0"></div>
+        <div class="form-group"><label class="form-label">Stock Quantity</label><input type="number" id="prod-stock" class="form-control" min="0"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Craft Type</label><select id="prod-craft" class="form-control"><option value="">-- Select Craft --</option></select></div>
+      <div class="form-group"><label class="form-label">Description</label><textarea id="prod-desc" class="form-control"></textarea></div>
+      <div class="form-group">
+        <label class="form-label">Product Image</label>
+        <div class="upload-zone" onclick="document.getElementById('prod-img-input').click()">
+          <div>📸 Click to upload image</div>
+          <div style="font-size:.78rem;color:var(--ink-60);margin-top:.35rem">PNG, JPG, WEBP up to 16MB</div>
+        </div>
+        <input type="file" id="prod-img-input" accept="image/*" style="display:none" onchange="previewImage(this)">
+        <img id="prod-img-preview" class="upload-preview" style="display:none">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-product')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+const user = requireAuth('artisan');
+if (user) {
+  document.getElementById('sb-name').textContent = user.name;
+  document.getElementById('sb-avatar').textContent = user.name[0].toUpperCase();
+  document.getElementById('welcome-msg').textContent = `Welcome, ${user.name}!`;
+  renderNavbar();
+}
+
+const sections = ['overview','products','orders','exhibitions','schemes','profile'];
+
+function showSection(key) {
+  sections.forEach(s => document.getElementById('sec-' + s).style.display = 'none');
+  document.getElementById('sec-' + key).style.display = 'block';
+  document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.toggle('active', a.dataset.key === key));
+  loadSection(key);
+}
+
+async function loadSection(key) {
+  if (key === 'overview') await loadOverview();
+  else if (key === 'products') await loadArtisanProducts();
+  else if (key === 'orders') await loadAllOrders();
+  else if (key === 'exhibitions') await loadArtisanExhibitions();
+  else if (key === 'schemes') await loadArtisanSchemes();
+  else if (key === 'profile') await loadProfile();
+}
+
+async function loadOverview() {
+  try {
+    const stats = await api.artisanStats(user.id);
+    document.getElementById('artisan-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-icon orange">🏺</div><div><div class="stat-value">${stats.products}</div><div class="stat-label">My Products</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">📦</div><div><div class="stat-value">${stats.orders}</div><div class="stat-label">Orders Received</div></div></div>
+      <div class="stat-card" style="grid-column:span 2;background:linear-gradient(135deg,var(--saffron),var(--earth));border:none">
+        <div class="stat-icon" style="background:rgba(255,255,255,.2);color:#fff">💰</div>
+        <div><div class="stat-value" style="color:#fff">${formatCurrency(stats.earnings)}</div><div class="stat-label" style="color:rgba(255,255,255,.8)">Total Earnings</div></div>
+      </div>
+      <div class="stat-card" style="grid-column:span 2"><div class="stat-icon gold">🎪</div><div><div class="stat-value">${stats.exhibitions.length}</div><div class="stat-label">Exhibitions Participating</div></div></div>
+    `;
+    // Recent orders
+    const orders = await api.artisanOrders(user.id);
+    const recent = orders.slice(0, 5);
+    document.getElementById('recent-orders-table').innerHTML = recent.map(o => `
+      <tr><td>#${o.Order_ID}</td><td>${o.Product_Name}</td><td>${o.Buyer_Name}</td><td>${o.Quantity}</td><td>${formatCurrency(o.Total_Amount)}</td><td>${formatDate(o.Order_Date)}</td></tr>
+    `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--ink-60)">No orders yet</td></tr>';
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function loadArtisanProducts() {
+  try {
+    const products = await api.artisanProducts(user.id);
+    document.getElementById('artisan-products-grid').innerHTML = products.map(p => `
+      <div class="card product-card">
+        <div class="product-img">
+          <img src="${p.Image_URL || ''}" alt="${p.Product_Name}" onerror="this.src='https://placehold.co/400x300/FAF3E8/E8650A?text=Art'">
+        </div>
+        <div class="product-body">
+          <div class="craft-tag">${p.Craft_Name || ''}</div>
+          <div class="product-name">${p.Product_Name}</div>
+          <div class="artisan-name">Stock: ${p.Stock_Quantity}</div>
+          <div class="product-footer">
+            <div class="price">${formatCurrency(p.Price)}</div>
+            <div class="td-actions">
+              <button class="btn btn-secondary btn-sm" onclick='editProduct(${JSON.stringify(p).replace(/"/g,"&quot;")})'>Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteMyProduct(${p.Product_ID},'${p.Product_Name}')">Del</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('') || '<p class="text-muted" style="grid-column:1/-1">No products yet. Add your first product!</p>';
+    // Load crafts for modal
+    const crafts = await api.crafts();
+    document.getElementById('prod-craft').innerHTML = '<option value="">-- Select Craft --</option>' + crafts.map(c => `<option value="${c.Craft_ID}">${c.Craft_Name}</option>`).join('');
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+function editProduct(p) {
+  document.getElementById('prod-id').value = p.Product_ID;
+  document.getElementById('prod-name').value = p.Product_Name;
+  document.getElementById('prod-price').value = p.Price;
+  document.getElementById('prod-stock').value = p.Stock_Quantity;
+  document.getElementById('prod-desc').value = p.Description || '';
+  document.getElementById('prod-craft').value = p.Craft_ID || '';
+  document.getElementById('prod-modal-title').textContent = 'Edit Product';
+  if (p.Image_URL) { const prev = document.getElementById('prod-img-preview'); prev.src = p.Image_URL; prev.style.display = 'block'; }
+  openModal('modal-product');
+}
+
+async function saveProduct() {
+  const name = document.getElementById('prod-name').value;
+  const price = document.getElementById('prod-price').value;
+  if (!name || !price) { showToast('Name and price required', 'error'); return; }
+  const fd = new FormData();
+  fd.append('product_name', name);
+  fd.append('price', price);
+  fd.append('stock_quantity', document.getElementById('prod-stock').value || 0);
+  fd.append('description', document.getElementById('prod-desc').value);
+  fd.append('craft_id', document.getElementById('prod-craft').value);
+  fd.append('artisan_id', user.id);
+  const imgInput = document.getElementById('prod-img-input');
+  if (imgInput.files[0]) fd.append('image', imgInput.files[0]);
+  try {
+    const id = document.getElementById('prod-id').value;
+    if (id) {
+      await api.updateProduct(id, fd);
+    } else {
+      await api.createProduct(fd);
+    }
+    showToast('Product saved!', 'success');
+    closeModal('modal-product');
+    document.getElementById('prod-id').value = '';
+    document.getElementById('prod-modal-title').textContent = 'Add Product';
+    document.getElementById('prod-img-preview').style.display = 'none';
+    loadArtisanProducts();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function deleteMyProduct(id, name) {
+  confirmAction(`Delete product "${name}"?`, async () => {
+    try { await api.deleteProduct(id); showToast('Deleted', 'success'); loadArtisanProducts(); } catch(e) { showToast(e.message, 'error'); }
+  });
+}
+
+async function loadAllOrders() {
+  try {
+    const orders = await api.artisanOrders(user.id);
+    document.getElementById('all-orders-table').innerHTML = orders.map(o => `
+      <tr><td>#${o.Order_ID}</td><td>${o.Product_Name}</td><td>${o.Buyer_Name}</td><td>${o.Quantity}</td><td>${formatCurrency(o.Total_Amount)}</td><td>${formatDate(o.Order_Date)}</td></tr>
+    `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--ink-60)">No orders yet</td></tr>';
+  } catch(e) {}
+}
+
+async function loadArtisanExhibitions() {
+  try {
+    const exhibitions = await api.artisanExhibitions(user.id);
+    document.getElementById('artisan-exhibitions').innerHTML = exhibitions.map(e => `
+      <div class="exhibition-card">
+        <div class="exhibition-banner"><span class="ex-icon">🎪</span><h3>${e.Exhibition_Name}</h3></div>
+        <div class="exhibition-body">
+          <div class="exhibition-meta"><span>📍 ${e.Location}</span></div>
+          <div class="exhibition-meta"><span>📅 ${formatDate(e.Start_Date)} – ${formatDate(e.End_Date)}</span></div>
+        </div>
+      </div>
+    `).join('') || '<p class="text-muted" style="grid-column:1/-1">Not assigned to any exhibitions yet.</p>';
+  } catch(e) {}
+}
+
+async function loadArtisanSchemes() {
+  try {
+    const schemes = await api.artisanSchemes(user.id);
+    document.getElementById('artisan-schemes').innerHTML = schemes.map(s => `
+      <div class="card card-body">
+        <h4>${s.Scheme_Name}</h4>
+        <div class="badge badge-gold mt-1 mb-2">Launched ${s.Launch_Year}</div>
+        <p style="font-size:.85rem"><strong>Benefits:</strong> ${s.Benefits || '—'}</p>
+        <p style="font-size:.85rem;margin-top:.35rem"><strong>Eligibility:</strong> ${s.Eligibility || '—'}</p>
+      </div>
+    `).join('') || '<p class="text-muted" style="grid-column:1/-1">Not enrolled in any schemes yet. Contact admin.</p>';
+  } catch(e) {}
+}
+
+async function loadProfile() {
+  try {
+    const artisan = await api.artisan(user.id);
+    document.getElementById('p-name').value = artisan.Name || '';
+    document.getElementById('p-email').value = artisan.Email || '';
+    document.getElementById('p-phone').value = artisan.Phone || '';
+    document.getElementById('p-dob').value = artisan.DOB ? artisan.DOB.slice(0,10) : '';
+    document.getElementById('p-state').value = artisan.State || '';
+    document.getElementById('p-skill').value = artisan.Skill_Level || 'Beginner';
+    document.getElementById('p-address').value = artisan.Address || '';
+  } catch(e) {}
+}
+
+async function saveProfile() {
+  try {
+    await api.updateArtisan(user.id, {
+      name: document.getElementById('p-name').value,
+      email: document.getElementById('p-email').value,
+      phone: document.getElementById('p-phone').value,
+      dob: document.getElementById('p-dob').value,
+      state: document.getElementById('p-state').value,
+      skill_level: document.getElementById('p-skill').value,
+      address: document.getElementById('p-address').value,
+      years_of_experience: 0, gender: 'Other'
+    });
+    showToast('Profile updated!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+function previewImage(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => { const prev = document.getElementById('prod-img-preview'); prev.src = e.target.result; prev.style.display = 'block'; };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+
+// Load crafts on page load
+api.crafts().then(crafts => {
+  document.getElementById('prod-craft').innerHTML = '<option value="">-- Select Craft --</option>' + crafts.map(c => `<option value="${c.Craft_ID}">${c.Craft_Name}</option>`).join('');
+}).catch(() => {});
+
+loadOverview();
+</script>
+</body>
+</html>

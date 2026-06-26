@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Buyer Dashboard — Indian Art Collective</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar" id="main-navbar"></nav>
+<div class="page-wrapper">
+  <div class="dashboard-layout">
+    <aside class="sidebar">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sb-avatar">B</div>
+        <div><div class="sidebar-name" id="sb-name">Buyer</div><div class="sidebar-role">Buyer</div></div>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="#" data-key="overview" onclick="showSection('overview')" class="active"><span class="icon">📊</span> Overview</a></li>
+        <li><a href="#" data-key="orders" onclick="showSection('orders')"><span class="icon">📦</span> My Orders</a></li>
+        <li><a href="#" data-key="exhibitions" onclick="showSection('exhibitions')"><span class="icon">🎪</span> Exhibitions</a></li>
+        <li><a href="#" data-key="profile" onclick="showSection('profile')"><span class="icon">👤</span> My Profile</a></li>
+      </ul>
+      <div style="padding:1rem;margin-top:1rem">
+        <a href="products.html" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;margin-bottom:.75rem">🏺 Browse Products</a>
+        <button class="btn btn-danger btn-sm" style="width:100%;justify-content:center" onclick="logout()">Logout</button>
+      </div>
+    </aside>
+
+    <main class="dashboard-main">
+      <!-- OVERVIEW -->
+      <div id="sec-overview">
+        <div class="dashboard-header"><h2 id="welcome-msg">Welcome back!</h2><p>Your shopping dashboard</p></div>
+        <div class="grid-3 mb-4" id="buyer-stats">
+          <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header flex items-center justify-between">
+            <h4>Recent Purchases</h4>
+            <a href="products.html" class="btn btn-primary btn-sm">Shop More</a>
+          </div>
+          <div class="table-wrapper">
+            <table><thead><tr><th>Order</th><th>Product</th><th>Artisan</th><th>Qty</th><th>Amount</th><th>Date</th></tr></thead>
+            <tbody id="recent-orders-table"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ORDERS -->
+      <div id="sec-orders" style="display:none">
+        <div class="dashboard-header"><h2>My Orders</h2><p>All your purchases</p></div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table><thead><tr><th>Order #</th><th>Product</th><th>Artisan</th><th>Image</th><th>Qty</th><th>Amount</th><th>Date</th></tr></thead>
+            <tbody id="all-orders-table"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXHIBITIONS -->
+      <div id="sec-exhibitions" style="display:none">
+        <div class="dashboard-header"><h2>Craft Exhibitions</h2><p>Visit these exhibitions to meet artisans in person</p></div>
+        <div class="grid-3" id="buyer-exhibitions">
+          <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div id="sec-profile" style="display:none">
+        <div class="dashboard-header"><h2>My Profile</h2></div>
+        <div class="card" style="max-width:540px">
+          <div class="card-body">
+            <div class="form-group"><label class="form-label">Full Name</label><input type="text" id="p-name" class="form-control"></div>
+            <div class="form-group"><label class="form-label">Email</label><input type="email" id="p-email" class="form-control"></div>
+            <div class="form-group"><label class="form-label">Phone</label><input type="tel" id="p-phone" class="form-control"></div>
+            <div class="form-group"><label class="form-label">Address</label><textarea id="p-address" class="form-control"></textarea></div>
+            <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+const user = requireAuth('buyer');
+if (user) {
+  document.getElementById('sb-name').textContent = user.name;
+  document.getElementById('sb-avatar').textContent = user.name[0].toUpperCase();
+  document.getElementById('welcome-msg').textContent = `Welcome, ${user.name}!`;
+  renderNavbar();
+}
+
+const sections = ['overview','orders','exhibitions','profile'];
+
+function showSection(key) {
+  sections.forEach(s => document.getElementById('sec-' + s).style.display = 'none');
+  document.getElementById('sec-' + key).style.display = 'block';
+  document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.toggle('active', a.dataset.key === key));
+  if (key === 'overview') loadOverview();
+  else if (key === 'orders') loadAllOrders();
+  else if (key === 'exhibitions') loadExhibitions();
+  else if (key === 'profile') loadProfile();
+}
+
+async function loadOverview() {
+  try {
+    const orders = await api.buyerOrders(user.id);
+    const totalSpent = orders.reduce((s, o) => s + parseFloat(o.Total_Amount), 0);
+    document.getElementById('buyer-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-icon green">📦</div><div><div class="stat-value">${orders.length}</div><div class="stat-label">Total Orders</div></div></div>
+      <div class="stat-card" style="grid-column:span 2;background:linear-gradient(135deg,var(--jade),#1a4532);border:none">
+        <div class="stat-icon" style="background:rgba(255,255,255,.2);color:#fff">💰</div>
+        <div><div class="stat-value" style="color:#fff">${formatCurrency(totalSpent)}</div><div class="stat-label" style="color:rgba(255,255,255,.8)">Total Spent</div></div>
+      </div>
+    `;
+    const recent = orders.slice(0, 5);
+    document.getElementById('recent-orders-table').innerHTML = recent.map(o => `
+      <tr><td>#${o.Order_ID}</td><td>${o.Product_Name}</td><td>${o.Artisan_Name || '—'}</td><td>${o.Quantity}</td><td>${formatCurrency(o.Total_Amount)}</td><td>${formatDate(o.Order_Date)}</td></tr>
+    `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--ink-60)">No orders yet. <a href="products.html" style="color:var(--saffron)">Start shopping!</a></td></tr>';
+  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function loadAllOrders() {
+  try {
+    const orders = await api.buyerOrders(user.id);
+    document.getElementById('all-orders-table').innerHTML = orders.map(o => `
+      <tr>
+        <td>#${o.Order_ID}</td>
+        <td>${o.Product_Name}</td>
+        <td>${o.Artisan_Name || '—'}</td>
+        <td><img src="${o.Image_URL || ''}" style="width:40px;height:40px;object-fit:cover;border-radius:6px" onerror="this.style.display='none'"></td>
+        <td>${o.Quantity}</td>
+        <td><strong>${formatCurrency(o.Total_Amount)}</strong></td>
+        <td>${formatDate(o.Order_Date)}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--ink-60)">No orders yet</td></tr>';
+  } catch(e) {}
+}
+
+async function loadExhibitions() {
+  try {
+    const exhibitions = await api.exhibitions();
+    document.getElementById('buyer-exhibitions').innerHTML = exhibitions.map(e => `
+      <div class="exhibition-card">
+        <div class="exhibition-banner"><span class="ex-icon">🎪</span><h3>${e.Exhibition_Name}</h3></div>
+        <div class="exhibition-body">
+          <div class="exhibition-meta"><span>📍 ${e.Location}</span></div>
+          <div class="exhibition-meta">
+            <span>📅 ${formatDate(e.Start_Date)}</span>
+            <span> – ${formatDate(e.End_Date)}</span>
+          </div>
+          <p style="font-size:.78rem;color:var(--jade);margin-top:.75rem">✓ Open to public — Visit in person!</p>
+        </div>
+      </div>
+    `).join('') || '<p class="text-muted" style="grid-column:1/-1">No upcoming exhibitions</p>';
+  } catch(e) {}
+}
+
+async function loadProfile() {
+  try {
+    const buyer = await api.buyer(user.id);
+    document.getElementById('p-name').value = buyer.Name || '';
+    document.getElementById('p-email').value = buyer.Email || '';
+    document.getElementById('p-phone').value = buyer.Phone || '';
+    document.getElementById('p-address').value = buyer.Address || '';
+  } catch(e) {}
+}
+
+async function saveProfile() {
+  try {
+    await api.updateBuyer(user.id, {
+      name: document.getElementById('p-name').value,
+      email: document.getElementById('p-email').value,
+      phone: document.getElementById('p-phone').value,
+      address: document.getElementById('p-address').value,
+    });
+    showToast('Profile updated!', 'success');
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+loadOverview();
+</script>
+</body>
+</html>

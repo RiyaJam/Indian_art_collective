@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Exhibitions — Indian Art Collective</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .ex-hero { background:linear-gradient(135deg,var(--earth),var(--ink)); padding:4rem 0; color:#fff; }
+  .ex-hero h1, .ex-hero p { color:#fff; }
+  .ex-hero p { color:rgba(255,255,255,.7); margin-top:.75rem; }
+  .ex-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1.75rem; }
+  .ex-detail-card { background:#fff; border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--border); transition:var(--transition); }
+  .ex-detail-card:hover { box-shadow:var(--shadow-md); transform:translateY(-2px); }
+  .ex-banner-full { height:160px; background:linear-gradient(135deg,var(--earth),var(--saffron)); display:flex; align-items:flex-end; padding:1.25rem; position:relative; }
+  .ex-banner-full .big-icon { position:absolute; right:1.5rem; top:50%; transform:translateY(-50%); font-size:4rem; opacity:.25; }
+  .ex-banner-full h3 { color:#fff; font-size:1.15rem; position:relative; z-index:1; }
+  .ex-body { padding:1.5rem; }
+  .ex-info-row { display:flex; align-items:center; gap:.6rem; font-size:.88rem; color:var(--ink-60); margin-bottom:.6rem; }
+  .ex-status { display:inline-flex; align-items:center; gap:.4rem; padding:.3rem .85rem; border-radius:20px; font-size:.75rem; font-weight:600; }
+  .ex-status.upcoming { background:rgba(41,128,185,.1); color:#2980b9; }
+  .ex-status.ongoing { background:rgba(45,106,79,.12); color:var(--jade); }
+  .ex-status.past { background:rgba(26,18,9,.08); color:var(--ink-60); }
+  .artisan-pill { display:inline-flex; align-items:center; gap:.4rem; background:var(--cream); border-radius:20px; padding:.25rem .75rem; font-size:.78rem; margin:.25rem; }
+</style>
+</head>
+<body>
+<nav class="navbar" id="main-navbar"></nav>
+<div class="page-wrapper">
+  <div class="ex-hero">
+    <div class="container">
+      <div class="section-tag" style="background:rgba(255,255,255,.15);color:var(--saffron-lt)">Craft Exhibitions</div>
+      <h1>Meet Artisans In Person</h1>
+      <p>Discover India's finest craft exhibitions. Visit, explore, and connect directly with master artisans.</p>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <div id="exhibitions-container" class="ex-grid">
+        <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div><p>Loading exhibitions...</p></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="toast-container"></div>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+renderNavbar('exhibitions');
+
+function getStatus(start, end) {
+  const now = new Date();
+  const s = new Date(start), e = new Date(end);
+  if (now < s) return { label: '🔵 Upcoming', cls: 'upcoming' };
+  if (now > e) return { label: '⚫ Past', cls: 'past' };
+  return { label: '🟢 Ongoing', cls: 'ongoing' };
+}
+
+async function loadExhibitions() {
+  try {
+    const exhibitions = await api.exhibitions();
+    if (!exhibitions.length) {
+      document.getElementById('exhibitions-container').innerHTML = '<p class="text-muted" style="grid-column:1/-1;text-align:center;padding:3rem">No exhibitions found.</p>';
+      return;
+    }
+    // Load artisan details for each exhibition
+    const html = await Promise.all(exhibitions.map(async e => {
+      let artisansHtml = '';
+      try {
+        const ex = await api.exhibition(e.Exhibition_ID);
+        if (ex.artisans && ex.artisans.length) {
+          artisansHtml = `
+            <div style="margin-top:1rem">
+              <div style="font-size:.75rem;font-weight:600;text-transform:uppercase;color:var(--ink-60);margin-bottom:.5rem">Participating Artisans</div>
+              ${ex.artisans.map(a => `<span class="artisan-pill">🎨 ${a.Name}</span>`).join('')}
+            </div>
+          `;
+        }
+      } catch(err) {}
+
+      const status = getStatus(e.Start_Date, e.End_Date);
+      return `
+        <div class="ex-detail-card">
+          <div class="ex-banner-full">
+            <span class="big-icon">🎪</span>
+            <h3>${e.Exhibition_Name}</h3>
+          </div>
+          <div class="ex-body">
+            <span class="ex-status ${status.cls}">${status.label}</span>
+            <div class="ex-info-row mt-2"><span>📍</span><strong>${e.Location}</strong></div>
+            <div class="ex-info-row"><span>📅</span><span>${formatDate(e.Start_Date)} – ${formatDate(e.End_Date)}</span></div>
+            ${artisansHtml}
+            <div style="margin-top:1rem;padding:.75rem;background:var(--cream);border-radius:var(--radius);font-size:.82rem;color:var(--jade)">
+              ✓ Open to public visitors. Plan your visit and experience authentic Indian craftsmanship in person.
+            </div>
+          </div>
+        </div>
+      `;
+    }));
+    document.getElementById('exhibitions-container').innerHTML = html.join('');
+  } catch(e) {
+    document.getElementById('exhibitions-container').innerHTML = '<p class="text-muted" style="grid-column:1/-1;text-align:center;padding:3rem">Failed to load exhibitions. Make sure the backend is running.</p>';
+  }
+}
+
+loadExhibitions();
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Admin Login — Indian Art Collective</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body { background: linear-gradient(135deg, #1A1209 0%, #3D2B1F 100%); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1.5rem; }
+  .auth-card { background:#fff; border-radius:var(--radius-lg); width:100%; max-width:400px; box-shadow:var(--shadow-lg); overflow:hidden; }
+  .auth-header { background: linear-gradient(135deg, #1A1209, #3D2B1F); padding:2.5rem; text-align:center; }
+  .auth-header .logo { font-size:3rem; margin-bottom:.75rem; }
+  .auth-header h2 { color:#fff; margin-bottom:.3rem; }
+  .auth-header p { color:rgba(255,255,255,.6); font-size:.88rem; }
+  .auth-body { padding:2rem; }
+  .role-links { display:flex; gap:.5rem; justify-content:center; margin-top:1.5rem; padding-top:1.5rem; border-top:1px solid var(--border); }
+  .role-link { font-size:.8rem; color:var(--ink-60); padding:.4rem .85rem; border-radius:20px; border:1px solid var(--border); transition:var(--transition); }
+  .role-link:hover { background:var(--cream); }
+</style>
+</head>
+<body>
+<div class="auth-card">
+  <div class="auth-header">
+    <div class="logo">⚙️</div>
+    <h2 style="font-family:'Playfair Display',serif;color:#fff">Admin Portal</h2>
+    <p>Manage the entire platform</p>
+  </div>
+  <div class="auth-body">
+    <div id="login-alert"></div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input type="text" id="username" class="form-control" placeholder="admin">
+      <span class="form-error">Username required</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" id="password" class="form-control" placeholder="Enter password">
+      <span class="form-error">Password required</span>
+    </div>
+    <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;background:var(--ink);box-shadow:none" id="login-btn" onclick="doLogin()">
+      Login as Admin
+    </button>
+    <p style="text-align:center;font-size:.8rem;color:var(--ink-60);margin-top:1rem">Demo: <strong>admin</strong> / <strong>password123</strong></p>
+    <div class="role-links">
+      <a href="login_artisan.html" class="role-link">🎨 Artisan</a>
+      <a href="login_buyer.html" class="role-link">🛍️ Buyer</a>
+      <a href="index.html" class="role-link">🏠 Home</a>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+redirectIfLoggedIn();
+async function doLogin() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  let valid = true;
+  if (!username) { document.getElementById('username').classList.add('error'); valid = false; } else document.getElementById('username').classList.remove('error');
+  if (!password) { document.getElementById('password').classList.add('error'); valid = false; } else document.getElementById('password').classList.remove('error');
+  if (!valid) return;
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  try {
+    const data = await api.loginAdmin({ username, password });
+    saveAuth(data);
+    showToast('Welcome, Admin!', 'success');
+    setTimeout(() => window.location.href = 'dashboard_admin.html', 800);
+  } catch(e) {
+    document.getElementById('login-alert').innerHTML = `<div class="alert alert-error">❌ ${e.message}</div>`;
+    btn.disabled = false; btn.textContent = 'Login as Admin';
+  }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>
